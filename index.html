@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motor/Sensory 진찰 입력</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Neuro Exam">
+<meta name="theme-color" content="#0e2a47">
+<style>
+/* VOICE: clinical, quiet, fast — a bedside form, not a dashboard.
+   IDEA: the paper neuro exam sheet on a clipboard: rows, R/L boxes, abnormal circled in red.
+   PICTURE: the form itself; abnormal cells turn red like a pen circle.
+   COLOUR and TYPE: ink navy band, white sheet, one red for abnormal; IBM Plex Sans KR + Plex Mono for the EMR text.
+   LAYOUT: one column, sticky section links, sticky bottom action bar, bottom-sheet picker. */
+:root{color-scheme:light dark;--bg:light-dark(#f3f5f8,#0b1522);--sheet:light-dark(#ffffff,#111e2e);--ink:light-dark(#0e2236,#e6edf5);--mute:light-dark(#5d6b7b,#93a3b5);--line:light-dark(#dde3ea,#22344a);--band:light-dark(#0e2a47,#07111d);--chip:light-dark(#eef2f6,#1a2b40);--ab:light-dark(#d1243f,#ff6b80);--abbg:light-dark(#fde8ec,#3a1820);--ok:light-dark(#0e2a47,#cfe0f2)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,"Apple SD Gothic Neo",system-ui,sans-serif;overflow-x:clip;padding-bottom:96px}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid #4c8dff;outline-offset:2px}
+header{background:var(--band);color:#fff;padding:16px max(4vw,14px) 14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px;max-width:760px;margin:0 auto}
+h1{font-size:20px;line-height:1.1;margin:0;font-weight:600}
+.hbtn{background:rgba(255,255,255,.14);border:0;color:#fff;border-radius:10px;min-height:44px;padding:0 14px;font-size:15px}
+.pt{max-width:760px;margin:12px auto 0;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:8px}
+.pt label{font-size:13px;color:#b9c8d8;display:block;margin-bottom:3px}
+.pt input{width:100%;min-height:44px;border-radius:10px;border:0;padding:0 12px;font-size:16px;background:#fff;color:#0e2236}
+.pt .memo{grid-column:1/-1}
+.hint{max-width:760px;margin:8px auto 0;font-size:13px;color:#b9c8d8}
+nav.scroll{position:sticky;top:0;z-index:5;background:var(--bg);display:flex;gap:6px;overflow-x:auto;padding:10px max(4vw,14px);border-bottom:1px solid var(--line)}
+nav a{flex:none;text-decoration:none;color:var(--ink);background:var(--chip);border-radius:999px;padding:8px 14px;font-size:14px}
+main{max-width:760px;margin:0 auto;padding:0 max(4vw,10px)}
+section{background:var(--sheet);border:1px solid var(--line);border-radius:14px;margin:14px 0;padding:6px 14px 10px}
+html{scroll-padding-top:64px}
+h2{font-size:17px;margin:10px 0 4px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+h2 small,.sub{font-weight:400;font-size:13px;color:var(--mute)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.lab{font-size:15px;line-height:1.3}
+.lab small{color:var(--mute);font-size:13px;display:block}
+.cells{display:flex;gap:6px;flex:none}
+.wide{display:block}.wide .cells{margin-top:6px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.chip{min-height:44px;min-width:58px;border:1px solid transparent;border-radius:10px;background:var(--chip);display:flex;align-items:center;justify-content:center;gap:5px;padding:0 8px}
+.chip i{font-style:normal;font-size:12px;color:var(--mute)}
+.chip b{font-family:ui-monospace,Menlo,monospace;font-weight:500;font-size:17px;color:var(--ok)}
+.chip.ab{background:var(--abbg);border-color:var(--ab)}.chip.ab b{color:var(--ab)}
+.grp{font-size:13px;color:var(--mute);margin:12px 0 0}
+.tog{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--mute);min-height:44px}
+.tog input{width:20px;height:20px}
+.sec{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.sec input{width:84px;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:0 10px;font-size:16px;background:var(--sheet)}
+textarea{width:100%;min-height:300px;font:13px/1.45 ui-monospace,Menlo,monospace;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg);white-space:pre;overflow-x:auto}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--sheet);border-top:1px solid var(--line);padding:10px max(4vw,12px) calc(10px + env(safe-area-inset-bottom))}
+.bar .in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:8px}
+.bar button{min-height:48px;border-radius:12px;border:1px solid var(--line);background:var(--chip);font-weight:500;font-size:15px}
+.bar .pri{background:var(--band);color:#fff;border-color:var(--band)}
+#status{max-width:760px;margin:0 auto 6px;font-size:13px;color:var(--mute);min-height:18px}
+#status.err{color:var(--ab)}
+.ov{position:fixed;inset:0;background:rgba(5,12,22,.45);z-index:20;display:none;align-items:flex-end;justify-content:center}
+.ov.on{display:flex}
+.sheet{background:var(--sheet);width:100%;max-width:560px;border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));max-height:85vh;overflow:auto}
+.sheet h3{margin:0 0 4px;font-size:17px}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}
+.opts button{min-height:56px;border-radius:12px;border:1px solid var(--line);background:var(--chip);font:500 20px ui-monospace,Menlo,monospace}
+.opts button.sel{background:var(--band);color:#fff;border-color:var(--band)}
+.opts button.abo{color:var(--ab)}.opts button.abo.sel{color:#fff;background:var(--ab);border-color:var(--ab)}
+.cancel{width:100%;min-height:48px;border-radius:12px;border:1px solid var(--line);background:transparent}
+.list input{width:100%;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:0 12px;font-size:16px;background:var(--bg);margin:10px 0}
+.item{display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);padding:8px 0}
+.item .open{flex:1;text-align:left;background:none;border:0;min-height:44px;padding:0}
+.item .open b{display:block;font-weight:600}.item .open span{font-size:13px;color:var(--mute)}
+.item .del{min-height:44px;border-radius:10px;border:1px solid var(--line);background:transparent;padding:0 12px;font-size:14px;color:var(--mute)}
+.item .del.arm{color:#fff;background:var(--ab);border-color:var(--ab)}
+.bk{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 8px}.bk button{min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--chip);font-size:14px}
+.empty{color:var(--mute);font-size:14px;padding:10px 0}
+@media(max-width:600px){.cells .chip{min-width:52px}.pt{grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(30px);opacity:.6}}}
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1>Motor / Sensory 진찰</h1><button class="hbtn" id="openList" type="button">저장된 기록</button></div>
+  <div class="pt">
+    <div><label for="pid">가명 ID (실제 등록번호 대신)</label><input id="pid" autocomplete="off" placeholder="예: 7W-12 KJS"></div>
+    <div><label for="dt">진찰일</label><input id="dt" type="date"></div>
+    <div class="memo"><label for="memo">메모 (선택)</label><input id="memo" autocomplete="off" placeholder="예: Rt. foot drop f/u"></div>
+  </div>
+  <p class="hint">오프라인 앱 · 기록은 이 폰 안에만 저장돼요. 가끔 '저장된 기록 → 백업'으로 파일을 남겨 두세요.</p>
+</header>
+<nav class="scroll"><a href="#motor">Motor</a><a href="#derm">Dermatome</a><a href="#pn">말초신경</a><a href="#deep">Deep</a><a href="#emr">EMR 텍스트</a></nav>
+<main>
+  <section id="motor"><h2>Motor <small>R / L, MRC grade</small></h2><div id="mRows"></div></section>
+  <section id="derm"><h2>Superficial · Dermatome <small>LT / PP, 2·1·0</small></h2><div id="dRows"></div></section>
+  <section id="pn"><h2>Superficial · Peripheral nerve <small>LT / PP, 2·1·0</small></h2>
+    <label class="tog"><input type="checkbox" id="pnOn"> EMR 텍스트에 포함 (이상값이 있으면 자동 포함)</label>
+    <div id="pRows"></div></section>
+  <section id="deep"><h2>Deep sensation <small>N·D·A</small></h2><div id="xRows"></div>
+    <div class="sec"><span class="lab">Great toe vibration (sec)</span><input id="vsR" inputmode="decimal" placeholder="R"><input id="vsL" inputmode="decimal" placeholder="L"></div>
+  </section>
+  <section id="emr"><h2>EMR 텍스트 <small>복사 버튼으로 붙여넣기</small></h2><textarea id="out" readonly aria-label="EMR text"></textarea></section>
+</main>
+<div class="bar"><div id="status"></div><div class="in"><button type="button" id="newBtn">새 환자</button><button type="button" class="pri" id="saveBtn">저장</button><button type="button" id="copyBtn">EMR 복사</button></div></div>
+
+<div class="ov" id="pick" role="dialog" aria-modal="true" aria-labelledby="pkT"><div class="sheet">
+  <h3 id="pkT"></h3><div class="sub" id="pkS"></div>
+  <div class="opts" id="pkO"></div>
+  <label class="tog"><input type="checkbox" id="both"> 양측(R·L) 같이 적용</label>
+  <button class="cancel" type="button" id="pkC">닫기</button>
+</div></div>
+<div class="ov" id="list" role="dialog" aria-modal="true" aria-labelledby="lsT"><div class="sheet list">
+  <h3 id="lsT">저장된 기록</h3>
+  <input id="q" placeholder="가명 ID·메모 검색" autocomplete="off">
+  <div id="items"></div>
+  <div class="bk"><button type="button" id="bkOut">백업 파일 만들기</button><button type="button" id="bkIn">백업 불러오기</button><input type="file" id="bkFile" accept="application/json,.json" hidden></div>
+  <button class="cancel" type="button" id="lsC">닫기</button>
+</div></div>
+
+<script>
+{
+const M=[["Shoulder abduction","C5"],["Elbow flexion","C5,6"],["Wrist extension","C6"],["Elbow extension","C7"],["Finger flexion","C8"],["Finger abduction","T1"],["Hip flexion","L1,2"],["Knee extension","L3,4"],["Ankle dorsiflexion","L4"],["Toe extension","L5"],["Ankle plantarflexion","S1"]];
+const D=[["C5","Lateral antecubital fossa"],["C6","Dorsal thumb, prox. phalanx"],["C7","Dorsal middle finger"],["C8","Dorsal little finger"],["T1","Medial antecubital fossa"],["T4","Nipple line"],["T10","Umbilicus"],["L2","Mid-anterior thigh"],["L3","Medial femoral condyle"],["L4","Medial malleolus"],["L5","Dorsum of foot, 3rd MTP"],["S1","Lateral heel"],["S4-5","Perianal"]];
+const P=[["UE","Axillary n.","Lateral shoulder (regimental badge)"],["UE","Lat. antebrachial cut. n.","Lateral forearm"],["UE","Med. antebrachial cut. n.","Medial forearm"],["UE","Superficial radial n.","Dorsal 1st web space (hand)"],["UE","Median n. (digital)","Palmar index fingertip"],["UE","Median n. (palmar cut.)","Thenar eminence"],["UE","Ulnar n. (digital)","Palmar little fingertip"],["UE","Dorsal ulnar cut. br.","Dorsal ulnar hand"],["LE","Lat. femoral cut. n.","Anterolateral thigh"],["LE","Obturator n.","Medial thigh"],["LE","Saphenous n.","Medial leg"],["LE","Superficial peroneal n.","Lateral leg, dorsum of foot"],["LE","Deep peroneal n.","Dorsal 1st web space (foot)"],["LE","Sural n.","Lateral foot, lat. malleolus"],["LE","Med./lat. plantar n.","Sole"]];
+const X=[["Vibration (128 Hz)","Index DIP"],["Vibration (128 Hz)","Great toe IP"],["Position sense","Index finger"],["Position sense","Great toe"]];
+const OPT={m:["5","4","3","2","1","0"],s:["2","1","0"],x:["N","D","A"],r:["(-)","(+)"]};
+const NORM={m:"5",s:"2",x:"N",r:"(-)"};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const kind=c=>c==="rom"?"r":c[0]==="m"?"m":c[0]==="x"?"x":"s";
+const cells=[];
+M.forEach((_,i)=>["R","L"].forEach(s=>cells.push("m"+i+s)));
+D.forEach((_,i)=>["LT","PP"].forEach(t=>["R","L"].forEach(s=>cells.push("d"+i+t+s))));
+P.forEach((_,i)=>["LT","PP"].forEach(t=>["R","L"].forEach(s=>cells.push("p"+i+t+s))));
+X.forEach((_,i)=>["R","L"].forEach(s=>cells.push("x"+i+s)));
+cells.push("rom");
+const defaults=()=>Object.fromEntries(cells.map(c=>[c,NORM[kind(c)]]));
+let v=defaults(),cur=null,dirty=false,pickCell=null;
+const KEY="neuroexam.records.v1";
+const all=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(a)?a:[]}catch(_){return[]}};
+const put=a=>{a.sort((x,y)=>(y.ts||0)-(x.ts||0));localStorage.setItem(KEY,JSON.stringify(a))};
+const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+$("dt").value=today();
+
+const show=c=>kind(c)==="m"?"G"+v[c]:v[c];
+const chip=(c,side)=>`<button type="button" class="chip" data-c="${c}"><i>${side}</i><b></b></button>`;
+$("mRows").innerHTML=M.map((m,i)=>`<div class="row"><div class="lab">${m[0]}<small>${m[1]}</small></div><div class="cells">${chip("m"+i+"R","R")}${chip("m"+i+"L","L")}</div></div>`).join("");
+const sRow=(p,i,a,b)=>`<div class="row wide"><div class="lab">${a}<small>${b}</small></div><div class="cells">${chip(p+i+"LTR","LT R")}${chip(p+i+"LTL","LT L")}${chip(p+i+"PPR","PP R")}${chip(p+i+"PPL","PP L")}</div></div>`;
+$("dRows").innerHTML=D.map((d,i)=>sRow("d",i,d[0],d[1])).join("");
+$("pRows").innerHTML=P.map((p,i)=>(i===0?'<p class="grp">Upper extremity</p>':i===8?'<p class="grp">Lower extremity</p>':"")+sRow("p",i,p[1],p[2])).join("");
+$("xRows").innerHTML=X.map((x,i)=>`<div class="row"><div class="lab">${x[0]}<small>${x[1]}</small></div><div class="cells">${chip("x"+i+"R","R")}${chip("x"+i+"L","L")}</div></div>`).join("")+`<div class="row"><div class="lab">Romberg test</div><div class="cells">${chip("rom","")}</div></div>`;
+
+const isAb=c=>v[c]!==NORM[kind(c)];
+function paint(){
+  document.querySelectorAll(".chip").forEach(b=>{const c=b.dataset.c;b.querySelector("b").textContent=show(c);b.classList.toggle("ab",isAb(c))});
+  $("out").value=emr();
+}
+function emr(){
+  const L=[],sv=c=>v[c];
+  L.push("[Motor] (R/L, MRC grade)");
+  M.forEach((m,i)=>L.push(`G${sv("m"+i+"R")}/G${sv("m"+i+"L")}  ${m[0].padEnd(22)}(${m[1]})`));
+  L.push("","[Sensory] (R/L; 2 = normal, 1 = impaired, 0 = absent)","1. Superficial sensation"," (1) Dermatome".padEnd(37)+"LT    PP");
+  const pair=(p,i)=>`${sv(p+i+"LTR")}/${sv(p+i+"LTL")}   ${sv(p+i+"PPR")}/${sv(p+i+"PPL")}`;
+  D.forEach((d,i)=>L.push(" "+d[0].padEnd(6)+d[1].padEnd(30)+pair("d",i)));
+  const pnAb=cells.some(c=>c[0]==="p"&&isAb(c));
+  if($("pnOn").checked||pnAb){
+    L.push(""," (2) Peripheral nerve".padEnd(65)+"LT    PP");
+    P.forEach((p,i)=>{if(i===0)L.push(" <Upper extremity>");if(i===8)L.push(" <Lower extremity>");L.push(" "+p[1].padEnd(27)+p[2].padEnd(37)+pair("p",i))});
+  }
+  L.push("","2. Deep sensation (N = normal, D = decreased, A = absent)");
+  const r=$("vsR").value.trim(),l=$("vsL").value.trim();
+  X.forEach((x,i)=>{const mod=i%2===0?x[0]:"";let s=" "+mod.padEnd(21)+x[1].padEnd(17)+`${sv("x"+i+"R")}/${sv("x"+i+"L")}`;if(i===1&&(r||l))s+=`  (${r||"__"} sec / ${l||"__"} sec)`;L.push(s)});
+  L.push(" "+"Romberg test".padEnd(38)+v.rom);
+  return L.join("\n");
+}
+function status(t,err){const s=$("status");s.textContent=t;s.classList.toggle("err",!!err)}
+function touch(){dirty=true;status(cur?"수정됨 · 저장 안 됨":"새 기록 · 저장 안 됨");paint()}
+
+function nameOf(c){
+  if(c==="rom")return["Romberg test",""];
+  const i=parseInt(c.slice(1),10),t=c[0];
+  const side=c.endsWith("R")?"Right":"Left";
+  if(t==="m")return[M[i][0]+" ("+M[i][1]+")",side];
+  if(t==="x")return[X[i][0]+" · "+X[i][1],side];
+  const mod=c.includes("LT")?"Light touch":"Pinprick";
+  const lab=t==="d"?D[i][0]+" "+D[i][1]:P[i][1]+" · "+P[i][2];
+  return[lab,mod+" · "+side];
+}
+function openPick(c){
+  pickCell=c;const[a,b]=nameOf(c),k=kind(c);
+  $("pkT").textContent=a;$("pkS").textContent=b;
+  $("pkO").innerHTML=OPT[k].map(o=>`<button type="button" data-o="${o}" class="${o===v[c]?"sel ":""}${o!==NORM[k]?"abo":""}">${k==="m"?"G"+o:o}</button>`).join("");
+  $("both").closest("label").style.display=c==="rom"?"none":"flex";
+  $("pick").classList.add("on");$("pkO").querySelector(".sel")?.focus();
+}
+const closeOv=id=>$(id).classList.remove("on");
+document.addEventListener("click",e=>{const b=e.target.closest(".chip");if(b)openPick(b.dataset.c)});
+$("pkO").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b||!pickCell)return;
+  v[pickCell]=b.dataset.o;
+  if($("both").checked&&pickCell!=="rom"){const o=pickCell.slice(0,-1)+(pickCell.endsWith("R")?"L":"R");v[o]=b.dataset.o}
+  closeOv("pick");touch();
+});
+$("pkC").onclick=()=>closeOv("pick");
+["pick","list"].forEach(id=>$(id).addEventListener("click",e=>{if(e.target.id===id)closeOv(id)}));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeOv("pick");closeOv("list")}});
+["vsR","vsL","pid","memo","dt"].forEach(id=>$(id).addEventListener("input",touch));
+$("pnOn").addEventListener("change",touch);
+
+function reset(){v=defaults();cur=null;dirty=false;$("pid").value="";$("memo").value="";$("vsR").value="";$("vsL").value="";$("pnOn").checked=false;$("dt").value=today();paint();status("새 환자 · 모두 정상값으로 초기화됨");window.scrollTo({top:0})}
+let armNew=false;
+$("newBtn").onclick=()=>{
+  if(dirty&&!armNew){armNew=true;$("newBtn").textContent="한 번 더 누르면 초기화";status("저장 안 된 변경이 있어요",true);setTimeout(()=>{armNew=false;$("newBtn").textContent="새 환자"},3000);return}
+  armNew=false;$("newBtn").textContent="새 환자";reset();
+};
+$("copyBtn").onclick=async()=>{
+  const t=emr();
+  try{await navigator.clipboard.writeText(t);status("EMR 텍스트 복사됨")}
+  catch(_){location.hash="emr";const o=$("out");o.focus();o.select();status("자동 복사가 막혔어요 · 아래 텍스트를 길게 눌러 복사하세요",true)}
+};
+
+function save(){
+  const pid=$("pid").value.trim();
+  if(!pid){status("가명 ID를 먼저 입력하세요",true);$("pid").focus();return}
+  const rec={id:cur||newId(),pid,date:$("dt").value||today(),memo:$("memo").value.trim(),pn:$("pnOn").checked,vs:{R:$("vsR").value.trim(),L:$("vsL").value.trim()},v:{...v},ts:Date.now()};
+  try{const a=all().filter(r=>r.id!==rec.id);a.push(rec);put(a);cur=rec.id;dirty=false;status("저장됨 · "+pid+" · "+rec.date)}
+  catch(e){status("저장 실패 · 폰 저장 공간을 확인하세요",true)}
+}
+$("saveBtn").onclick=save;
+
+function load(b){
+  v={...defaults(),...(b.v||{})};cur=b.id;
+  $("pid").value=b.pid||"";$("dt").value=b.date||today();$("memo").value=b.memo||"";$("pnOn").checked=!!b.pn;
+  $("vsR").value=b.vs?.R||"";$("vsL").value=b.vs?.L||"";dirty=false;paint();closeOv("list");status("불러옴 · "+(b.pid||"")+" · "+(b.date||""));window.scrollTo({top:0});
+}
+function renderList(){
+  const q=$("q").value.trim().toLowerCase(),box=$("items"),docs=all();
+  const f=docs.filter(b=>!q||String(b.pid||"").toLowerCase().includes(q)||String(b.memo||"").toLowerCase().includes(q));
+  if(!f.length){box.innerHTML=`<p class="empty">${docs.length?"검색 결과가 없어요.":"아직 저장된 기록이 없어요."}</p>`;return}
+  box.innerHTML=f.map(b=>{const vv={...defaults(),...(b.v||{})},n=cells.filter(c=>vv[c]!==NORM[kind(c)]).length;
+    return `<div class="item"><button type="button" class="open" data-id="${esc(b.id)}"><b>${esc(b.pid||"(ID 없음)")}</b><span>${esc(b.date||"")} · ${n?"이상 "+n+"칸":"모두 정상"}${b.memo?" · "+esc(b.memo):""}</span></button><button type="button" class="del" data-id="${esc(b.id)}">삭제</button></div>`}).join("");
+}
+$("q").addEventListener("input",renderList);
+$("openList").onclick=()=>{renderList();$("list").classList.add("on");$("q").focus()};
+$("lsC").onclick=()=>closeOv("list");
+$("items").addEventListener("click",e=>{
+  const o=e.target.closest(".open");if(o){const d=all().find(x=>x.id===o.dataset.id);if(d)load(d);return}
+  const del=e.target.closest(".del");if(!del)return;
+  if(!del.classList.contains("arm")){del.classList.add("arm");del.textContent="삭제 확인";setTimeout(()=>{del.classList.remove("arm");del.textContent="삭제"},3000);return}
+  try{put(all().filter(r=>r.id!==del.dataset.id));if(cur===del.dataset.id)cur=null;status("기록 삭제됨");renderList()}catch(_){status("삭제 실패",true)}
+});
+$("bkOut").onclick=async()=>{
+  const name="neuroexam-backup-"+today()+".json",blob=new Blob([JSON.stringify(all())],{type:"application/json"});
+  try{const f=new File([blob],name,{type:"application/json"});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name});status("백업 파일 공유 창을 열었어요 · '파일에 저장'을 고르세요");return}}catch(e){if(e&&e.name==="AbortError")return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();status("백업 파일을 만들었어요");
+};
+$("bkIn").onclick=()=>$("bkFile").click();
+$("bkFile").onchange=async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{const inc=JSON.parse(await f.text());if(!Array.isArray(inc))throw 0;
+    const m=new Map(all().map(r=>[r.id,r]));let n=0;
+    inc.forEach(r=>{if(!r||typeof r.id!=="string")return;const o=m.get(r.id);if(!o||(r.ts||0)>(o.ts||0)){m.set(r.id,r);n++}});
+    put([...m.values()]);renderList();status("백업에서 "+n+"건 복원했어요");
+  }catch(_){status("백업 파일을 읽지 못했어요",true)}
+};
+
+paint();status("모두 정상값으로 시작 · 이상 항목만 눌러서 바꾸세요");
+try{navigator.storage?.persist?.()}catch(_){}
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
